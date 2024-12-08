@@ -207,10 +207,12 @@ export class EasLitClient {
         })
       if (options.gated) {
         await this.lit.connect()
+        const conditions = JSON.parse(decodedData["conditions"])
         const decryptedResult = await this.lit.decrypt(
           decodedData["encryptedData"],
           decodedData["hash"],
-          JSON.parse(decodedData["conditions"]),
+          conditions,
+          conditions[0].chain,
           options.resources
         )
         return { decodedData: JSON.parse(decryptedResult), attestation }

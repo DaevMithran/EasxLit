@@ -7,10 +7,6 @@ import { accessControlConditions } from "./types/constants.js"
 import { EasLitClient, EncryptedAttestation } from "./easClient.js"
 import { ethers } from "ethers"
 import { UnifiedAccessControlConditions } from "@lit-protocol/types"
-import {
-  uint8arrayFromString,
-  uint8arrayToString,
-} from "@lit-protocol/lit-node-client"
 import { AnonAadhaarProof } from "./types/index.js"
 
 config()
@@ -18,7 +14,7 @@ config()
 const displayTitle = () => {
   console.log(
     chalk.cyan(
-      figlet.textSync("ENACT", {
+      figlet.textSync("DACONA", {
         font: "Banner3-D",
         horizontalLayout: "default",
         verticalLayout: "default",
@@ -191,9 +187,52 @@ const run = async () => {
       )
 
       if (selectedIndex !== -1) {
-        accessConditions.push(
-          remainingConditions.splice(selectedIndex, 1)[0].condition
-        )
+        const { name, condition } = remainingConditions.splice(
+          selectedIndex,
+          1
+        )[0]
+
+        if (name.includes("AnonAadhaar")) {
+          const input = await inquirer.prompt([
+            {
+              type: "input",
+              name: "proof",
+              message: chalk.cyan("Paste your Aadhaar ZK Proof:"),
+            },
+          ])
+
+          const proof = JSON.parse(input.proof) as AnonAadhaarProof
+
+          // add resources to be passed as params
+          const rs = [
+            proof.nullifierSeed,
+            proof.nullifier,
+            proof.timestamp,
+            "1",
+            `[${proof.ageAbove18},${proof.gender},${proof.pincode},${proof.state}]`,
+            `[${proof.groth16Proof.pi_a[0]},${proof.groth16Proof.pi_a[1]},${proof.groth16Proof.pi_b[0][1]},${proof.groth16Proof.pi_b[0][0]},${proof.groth16Proof.pi_b[1][1]},${proof.groth16Proof.pi_b[1][0]},${proof.groth16Proof.pi_c[0]},${proof.groth16Proof.pi_c[1]}]`,
+          ]
+
+          // replace placeholders
+          condition.functionParams = rs
+        } else if (name.includes("Timelock")) {
+          const input = await inquirer.prompt([
+            {
+              type: "input",
+              name: "time",
+              message: chalk.cyan(
+                "How many minutes do you want this data locked:"
+              ),
+            },
+          ])
+          const currentEpochTimeSeconds = Math.floor(Date.now() / 1000)
+          condition.returnValueTest.value = (
+            currentEpochTimeSeconds +
+            input.time * 60
+          ).toString()
+        }
+
+        accessConditions.push(condition)
       } else {
         console.log(chalk.red("Invalid condition selected. Try again."))
         continue
@@ -274,103 +313,8 @@ const run = async () => {
       ) as UnifiedAccessControlConditions
       console.log(chalk.green(stringify(conditions)))
 
-      let resources: string[] = []
-      // if conditions need params get them from user
-      if (
-        decodedData.conditions.includes(":litParam") &&
-        decodedData.conditions.includes("Aadhaar")
-      ) {
-        // TODO: make it dynamic, Specific to Anon Aadhaar for now
-        // const input = await inquirer.prompt([
-        //   {
-        //     type: "input",
-        //     name: "proof",
-        //     message: chalk.cyan("Paste your Aadhaar ZK Proof:"),
-        //   },
-        // ])
-
-        try {
-          //   const proof = JSON.parse(input.proof) as AnonAadhaarProof
-
-          const proof: AnonAadhaarProof = {
-            groth16Proof: {
-              pi_a: [
-                "453522302728711170662034996164523811948049632505189552777865030348476378333",
-                "1455520893906633969052880329423132015380962295747599422399582082698437183912",
-                "1",
-              ],
-              pi_b: [
-                [
-                  "1853457071436444831465227056594151003084081362032976862728653223335906539602",
-                  "3965652666125386377173350237323832110258916721670646802630361326324683624082",
-                ],
-                [
-                  "1056484870984136939654587035178792542792627275167890019897546039621076240385",
-                  "13594899366205476732285060187416718452942220504188020474899201556378142257379",
-                ],
-                ["1", "0"],
-              ],
-              pi_c: [
-                "9270450197135104109231418725762584718131404367638713051632603041782173293367",
-                "6993302625899139560892286625084309725826361987332724770207177146099019232487",
-                "1",
-              ],
-              protocol: "groth16",
-              curve: "bn128",
-            },
-            pubkeyHash:
-              "15134874015316324267425466444584014077184337590635665158241104437045239495873",
-            timestamp: "1733578200",
-            nullifierSeed: "1234",
-            nullifier:
-              "13814867142699877741266914456770721337120552143355576531328009120994951746374",
-            signalHash:
-              "10010552857485068401460384516712912466659718519570795790728634837432493097374",
-            ageAbove18: "0",
-            gender: "0",
-            pincode: "0",
-            state: "0",
-          }
-
-          //   console.log(chalk.green("Parsed proof:"), proof)
-          // add resources to be passed as params
-          console.log(proof.nullifierSeed)
-          resources = [
-            `litParam:nullifierSeed:${uint8arrayToString(
-              uint8arrayFromString(proof.nullifierSeed),
-              "base64url"
-            )}`,
-            `litParam:nullifier:${uint8arrayToString(
-              uint8arrayFromString(proof.nullifier),
-              "base64url"
-            )}`,
-            `litParam:timestamp:${uint8arrayToString(
-              uint8arrayFromString(proof.timestamp),
-              "base64url"
-            )}`,
-            `litParam:revealArray:${uint8arrayToString(
-              uint8arrayFromString(
-                `[${proof.ageAbove18},${proof.gender},${proof.pincode},${proof.state}]`
-              ),
-              "base64url"
-            )}`,
-            `litParam:groth16Proof:${uint8arrayToString(
-              uint8arrayFromString(
-                `[${proof.groth16Proof.pi_a[0]},${proof.groth16Proof.pi_a[1]},${proof.groth16Proof.pi_b[0][1]},${proof.groth16Proof.pi_b[0][0]},${proof.groth16Proof.pi_b[1][1]},${proof.groth16Proof.pi_b[1][0]},${proof.groth16Proof.pi_c[0]},${proof.groth16Proof.pi_c[1]}]`
-              ),
-              "base64url"
-            )}`,
-          ]
-          console.log(chalk.green(`${resources.length} params added`))
-        } catch (error) {
-          console.error(chalk.red(error))
-          return
-        }
-      }
-
       const getAttestationRes = await client.getAttestation(attestationId, {
         gated: true,
-        resources,
       })
 
       console.log(chalk.green("Attestation Resolved:"))

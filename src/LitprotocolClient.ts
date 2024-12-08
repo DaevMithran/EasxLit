@@ -20,7 +20,7 @@ import { ethers } from "ethers"
 export class LitProtocol {
   client: LitNodeClient | LitNodeClientNodeJs
   litNetwork: LitNetwork = LitNetwork.DatilDev
-  chain: string = "amoy"
+  chain: string = "sepolia"
   private readonly ethereumAuthWallet: ethers.Wallet
 
   constructor(ethereumAuthWallet: ethers.Wallet) {
@@ -63,6 +63,7 @@ export class LitProtocol {
     encryptedString: string,
     stringHash: string,
     unifiedAccessControlConditions: NonNullable<UnifiedAccessControlConditions>,
+    chain: string,
     _resources: string[] = []
   ): Promise<string> {
     const resourceAbilityRequests = [
@@ -76,6 +77,7 @@ export class LitProtocol {
     const sessionSigs = await this.client.getSessionSigs({
       expiration: new Date(Date.now() + 1000 * 60 * 10).toISOString(),
       resourceAbilityRequests,
+      // TODO: Debug including custom params in a smart contract
       //   jsParams: resources.length
       //     ? {
       //         authsig: await checkAndSignAuthMessage({
@@ -108,7 +110,7 @@ export class LitProtocol {
 
     // decrypt
     const { decryptedData } = await this.client.decrypt({
-      chain: this.chain,
+      chain,
       ciphertext: encryptedString,
       dataToEncryptHash: stringHash,
       unifiedAccessControlConditions: unifiedAccessControlConditions,

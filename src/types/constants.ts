@@ -18,6 +18,21 @@ export const accessControlConditions: {
     },
   },
   {
+    name: "NFT Owner",
+    condition: {
+      conditionType: "evmBasic",
+      contractAddress: "0xCd2AE5e5371A6f667726A76B36D5CC161a5fB3e6",
+      standardContractType: "ERC721",
+      chain: "amoy",
+      method: "ownerOf",
+      parameters: ["1"],
+      returnValueTest: {
+        comparator: "=",
+        value: ":userAddress",
+      },
+    },
+  },
+  {
     name: "Burning Man 2021 POAP",
     condition: {
       conditionType: "evmBasic",
@@ -57,22 +72,22 @@ export const accessControlConditions: {
       method: "eth_getBalance",
       parameters: [":userAddress"],
       returnValueTest: {
-        comparator: ">=",
+        comparator: ">",
         value: "0",
       },
     },
   },
   {
-    name: "Anon Aadhaar",
+    name: "AnonAadhaar",
     condition: {
       conditionType: "evmContract",
-      contractAddress: "0xE559485E350e173e3C28CF3B78154E98d6bd8D02",
+      contractAddress: "0x6bE8Cec7a06BA19c39ef328e8c8940cEfeF7E281",
       functionName: "verifyAnonAadhaarProof",
       functionParams: [
         ":litParam:nullifierSeed",
         ":litParam:nullifier",
         ":litParam:timestamp",
-        "0xE559485E350e173e3C28CF3B78154E98d6bd8D02", // smart contract address
+        "1",
         ":litParam:revealArray",
         ":litParam:groth16Proof",
       ],
