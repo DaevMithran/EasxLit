@@ -100,7 +100,9 @@ const run = async () => {
     ])
 
     console.log(chalk.blue(`Creating schema: ${schemaName}`))
-    const createSchemaRes = await client.createSchema(schema)
+    console.log(chalk.red(schema))
+    const transaction = await client.createSchema({ schema })
+    const createSchemaRes = await transaction.wait()
 
     console.log(chalk.green("Schema Created:"))
     console.log(chalk.green(stringify(createSchemaRes, { maxLength: 50 })))
@@ -192,7 +194,7 @@ const run = async () => {
           1
         )[0]
 
-        if (name.includes("AnonAadhaar")) {
+        if (name == "AnonAadhaar") {
           const input = await inquirer.prompt([
             {
               type: "input",
